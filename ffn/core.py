@@ -13,6 +13,55 @@ import sklearn.covariance
 from scipy.optimize import minimize
 import scipy.stats
 from scipy.stats import t
+
+IDX_VERBOSE_MAP = {'start': 'Start',
+                   'end': 'End',
+                   'rf': 'Risk-free rate',
+                   'total_return': 'Total Return',
+                   'daily_sharpe': 'Daily Sharpe',
+                   'daily_sortino': 'Daily Sortino',
+                   'cagr': 'CAGR',
+                   'max_drawdown': 'Max Drawdown',
+                   'calmar': 'Calmar Ratio',
+                   'one_week': '1w',
+                   'mtd': 'MTD',
+                   'three_month': '3m',
+                   'six_month': '6m',
+                   'ytd': 'YTD',
+                   'one_year': '1Y',
+                   'two_year': '2Y (ann.) ',
+                   'three_year': '3Y (ann.)',
+                   'five_year': '5Y (ann.)',
+                   'ten_year': '10Y (ann.)',
+                   'incep': 'Since Incep. (ann.)',
+                   'daily_mean': 'Daily Mean (ann.)',
+                   'daily_vol': 'Daily Vol (ann.)',
+                   'daily_skew': 'Daily Skew',
+                   'daily_kurt': 'Daily Kurt',
+                   'best_day': 'Best Day',
+                   'worst_day': 'Worst Day',
+                   'monthly_sharpe': 'Monthly Sharpe',
+                   'monthly_sortino': 'Monthly Sortino',
+                   'monthly_mean': 'Monthly Mean (ann.)',
+                   'monthly_vol': 'Monthly Vol (ann.)',
+                   'monthly_skew': 'Monthly Skew',
+                   'monthly_kurt': 'Monthly Kurt',
+                   'best_month': 'Best Month',
+                   'worst_month': 'Worst Month',
+                   'yearly_sharpe': 'Yearly Sortino',
+                   'yearly_mean': 'Yearly Mean',
+                   'yearly_vol': 'Yearly Vol',
+                   'yearly_skew': 'Yearly Skew',
+                   'yearly_kurt': 'Yearly Kurt',
+                   'best_year': 'Best Year',
+                   'worst_year': 'Worst Year',
+                   'avg_drawdown': 'Avg. Drawdown',
+                   'avg_drawdown_days': 'Avg. Drawdown Days',
+                   'avg_up_month': 'Avg. Up Month',
+                   'avg_down_month': 'Avg. Down Month',
+                   'win_year_perc': 'Win Year %',
+                   'twelve_month_win_perc': 'Win 12m %'}
+
 try:
     import prettyplotlib  # NOQA
 except ImportError:
@@ -29,7 +78,6 @@ from matplotlib import pyplot as plt  # noqa
 
 
 class PerformanceStats(object):
-
     """
     PerformanceStats is a convenience class used for the performance
     evaluation of a price series. It contains various helper functions
@@ -53,7 +101,7 @@ class PerformanceStats(object):
 
     def __init__(self, prices, rf=0.):
         super(PerformanceStats, self).__init__()
-        self.prices = prices
+        self.prices = prices.dropna()
         self.name = self.prices.name
         self._start = self.prices.index[0]
         self._end = self.prices.index[-1]
@@ -91,10 +139,10 @@ class PerformanceStats(object):
                                          'Nov', 'Dec', 'YTD']
 
         self.lookback_returns = pd.Series(
-            [self.mtd, self.three_month, self.six_month, self.ytd,
-             self.one_year, self.three_year, self.five_year,
+            [self.one_week, self.mtd, self.three_month, self.six_month, self.ytd,
+             self.one_year, self.two_year, self.three_year, self.five_year,
              self.ten_year, self.cagr],
-            ['mtd', '3m', '6m', 'ytd', '1y', '3y', '5y', '10y', 'incep'])
+            ['1w', 'mtd', '3m', '6m', 'ytd', '1y', '2y', '3y', '5y', '10y', 'incep'])
         self.lookback_returns.name = self.name
 
         st = self._stats()
@@ -127,6 +175,7 @@ class PerformanceStats(object):
         self.monthly_sortino = np.nan
         self.best_month = np.nan
         self.worst_month = np.nan
+        self.one_week = np.nan
         self.mtd = np.nan
         self.three_month = np.nan
         self.pos_month_perc = np.nan
@@ -149,6 +198,7 @@ class PerformanceStats(object):
         self.twelve_month_win_perc = np.nan
         self.yearly_skew = np.nan
         self.yearly_kurt = np.nan
+        self.two_year = np.nan
         self.five_year = np.nan
         self.ten_year = np.nan
         self.calmar = np.nan
@@ -259,6 +309,10 @@ class PerformanceStats(object):
             arr = np.array(listvalues(self.return_table[idx]))
             self.return_table[idx][13] = np.prod(arr + 1) - 1
 
+        denom = p[:p.index[-1] - pd.DateOffset(weeks=1)]
+        if len(denom) > 0:
+            self.one_week = p[-1] / denom[-1] - 1
+
         if len(mr) < 3:
             return
 
@@ -301,7 +355,10 @@ class PerformanceStats(object):
         self.worst_year = yr.min()
 
         # annualize stat for over 1 year
-        self.three_year = calc_cagr(p[p.index[-1] - pd.DateOffset(years=3):])
+        self.three_year = calc_cagr_look_back(p, years=3)
+        self.two_year = calc_cagr_look_back(p, years=2)
+        self.five_year = calc_cagr_look_back(p, years=5)
+        self.ten_year = calc_cagr_look_back(p, years=10)
 
         # -1 here to account for first return that will be nan
         self.win_year_perc = len(yr[yr > 0]) / float(len(yr) - 1)
@@ -325,9 +382,6 @@ class PerformanceStats(object):
         if len(yr[(~np.isnan(yr)) & (yr != 0)]) > 0:
             self.yearly_kurt = yr.kurt()
 
-        self.five_year = calc_cagr(p[p.index[-1] - pd.DateOffset(years=5):])
-        self.ten_year = calc_cagr(p[p.index[-1] - pd.DateOffset(years=10):])
-
         return
 
     def _stats(self):
@@ -342,11 +396,13 @@ class PerformanceStats(object):
                  ('max_drawdown', 'Max Drawdown', 'p'),
                  ('calmar', 'Calmar Ratio', 'n'),
                  (None, None, None),
+                 ('one_week', '1w', 'p'),
                  ('mtd', 'MTD', 'p'),
                  ('three_month', '3m', 'p'),
                  ('six_month', '6m', 'p'),
                  ('ytd', 'YTD', 'p'),
                  ('one_year', '1Y', 'p'),
+                 ('two_year', '2Y (ann.) ', 'p'),
                  ('three_year', '3Y (ann.)', 'p'),
                  ('five_year', '5Y (ann.)', 'p'),
                  ('ten_year', '10Y (ann.)', 'p'),
@@ -425,12 +481,12 @@ class PerformanceStats(object):
                                       'CAGR', 'Max Drawdown']))
 
         print('\nAnnualized Returns:')
-        data = [[fmtp(self.mtd), fmtp(self.three_month), fmtp(self.six_month),
-                 fmtp(self.ytd), fmtp(self.one_year), fmtp(self.three_year),
+        data = [[fmtp(self.one_week), fmtp(self.mtd), fmtp(self.three_month), fmtp(self.six_month),
+                 fmtp(self.ytd), fmtp(self.one_year), fmtp(self.two_year), fmtp(self.three_year),
                  fmtp(self.five_year), fmtp(self.ten_year),
                  fmtp(self.incep)]]
         print(tabulate(data,
-                       headers=['mtd', '3m', '6m', 'ytd', '1y',
+                       headers=['1w', 'mtd', '3m', '6m', 'ytd', '1y', '2y',
                                 '3y', '5y', '10y', 'incep.']))
 
         print('\nPeriodic:')
@@ -594,7 +650,6 @@ class PerformanceStats(object):
 
 
 class GroupStats(dict):
-
     """
     GroupStats enables one to compare multiple series side by side.
     It is a wrapper around a dict of {price.name: PerformanceStats} and
@@ -617,7 +672,7 @@ class GroupStats(dict):
 
     """
 
-    def __init__(self, *prices):
+    def __init__(self, *prices, dropna=True):
         names = []
         for p in prices:
             if isinstance(p, pd.DataFrame):
@@ -630,8 +685,10 @@ class GroupStats(dict):
         self._names = names
 
         # store original prices
-        self._prices = merge(*prices).dropna()
-
+        if dropna:
+            self._prices = merge(*prices).dropna()
+        else:
+            self._prices = merge(*prices)
         # proper ordering
         self._prices = self._prices[self._names]
 
@@ -660,6 +717,9 @@ class GroupStats(dict):
 
         self.stats = pd.DataFrame(
             {x.name: x.stats for x in self.values()})
+        self.stats_vb = self.stats.rename_axis(IDX_VERBOSE_MAP, axis=0)
+        self.perf = self.lookback_returns.T.join(
+            self.stats.loc[['total_return', 'start', 'daily_vol', 'daily_sharpe', 'max_drawdown'], :].T)
 
     def _calculate(self, data):
         self.prices = data
@@ -679,6 +739,7 @@ class GroupStats(dict):
                  ('max_drawdown', 'Max Drawdown', 'p'),
                  ('calmar', 'Calmar Ratio', 'n'),
                  (None, None, None),
+                 ('one_week', '1w', 'p'),
                  ('mtd', 'MTD', 'p'),
                  ('three_month', '3m', 'p'),
                  ('six_month', '6m', 'p'),
@@ -1025,7 +1086,7 @@ def calc_perf_stats(prices):
     return PerformanceStats(prices)
 
 
-def calc_stats(prices):
+def calc_stats(prices, dropna=True):
     """
     Calculates performance stats of a given object.
 
@@ -1039,7 +1100,7 @@ def calc_stats(prices):
     if isinstance(prices, pd.Series):
         return PerformanceStats(prices)
     elif isinstance(prices, pd.DataFrame):
-        return GroupStats(*[prices[x] for x in prices.columns])
+        return GroupStats(*[prices[x] for x in prices.columns], dropna=dropna)
     else:
         raise NotImplementedError('Unsupported type')
 
@@ -1152,6 +1213,21 @@ def calc_cagr(prices):
     start = prices.index[0]
     end = prices.index[-1]
     return (prices.ix[-1] / prices.ix[0]) ** (1 / year_frac(start, end)) - 1
+
+
+def calc_cagr_look_back(p, **kwargs):
+    """
+    Calculate look back CAGR
+    :param p:
+    :param kwargs: eg. years=5
+    :return:
+    """
+    start = p.index[-1] - pd.DateOffset(**kwargs)
+    start_p = p.index[0]
+    if start > start_p:
+        return calc_cagr(p[start:])
+    else:
+        return np.nan
 
 
 def calc_risk_return_ratio(returns):
@@ -1365,6 +1441,7 @@ def calc_mean_var_weights(returns, weight_bounds=(0., 1.),
         Series {col_name: weight}
 
     """
+
     def fitness(weights, exp_rets, covar, rf):
         # portfolio mean
         mean = sum(exp_rets * weights)
@@ -1922,7 +1999,7 @@ def winsorize(x, axis=0, limits=0.01):
     x = x.copy()
 
     if isinstance(x, pd.DataFrame):
-        return x.apply(_winsorize_wrapper, axis=axis, args=(limits, ))
+        return x.apply(_winsorize_wrapper, axis=axis, args=(limits,))
     else:
         return pd.Series(_winsorize_wrapper(x, limits).values,
                          index=x.index)
@@ -1932,6 +2009,7 @@ def rescale(x, min=0., max=1., axis=0):
     """
     Rescale values to fit a certain range [min, max]
     """
+
     def innerfn(x, min, max):
         return np.interp(x, [np.min(x), np.max(x)], [min, max])
 
