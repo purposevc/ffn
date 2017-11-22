@@ -10,16 +10,20 @@ def local_file(filename):
     )
 
 
-version = re.search(
-    "^__version__ = \((\d+), (\d+), (\d+)\)$",
-    local_file('ffn/__init__.py').read(),
-    re.MULTILINE
-).groups()
+def version():
+    """Return version string."""
+    with open(os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                           'pandas_datareader',
+                           '__init__.py')) as input_file:
+        for line in input_file:
+            if line.startswith('__version__'):
+                return parse(line).body[0].value.s
+
 
 
 setuptools.setup(
     name="ffn",
-    version='.'.join(version),
+    version=version,
     author='Philippe Morissette',
     author_email='morissette.philippe@gmail.com',
     description='Financial functions for Python',
