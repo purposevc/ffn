@@ -2,6 +2,7 @@ import setuptools
 import codecs
 import os
 import re
+from ast import parse
 
 
 def local_file(filename):
@@ -13,7 +14,7 @@ def local_file(filename):
 def version():
     """Return version string."""
     with open(os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                           'pandas_datareader',
+                           'ffn',
                            '__init__.py')) as input_file:
         for line in input_file:
             if line.startswith('__version__'):
@@ -23,7 +24,7 @@ def version():
 
 setuptools.setup(
     name="ffn",
-    version=version,
+    version=version(),
     author='Philippe Morissette',
     author_email='morissette.philippe@gmail.com',
     description='Financial functions for Python',
