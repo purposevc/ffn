@@ -717,7 +717,7 @@ class GroupStats(dict):
 
         self.stats = pd.DataFrame(
             {x.name: x.stats for x in self.values()})
-        self.stats_vb = self.stats.rename_axis(IDX_VERBOSE_MAP, axis=0)
+        self.stats_vb = self.stats.rename(index=IDX_VERBOSE_MAP)
         self.perf = self.lookback_returns.T.join(
             self.stats.loc[['total_return', 'start', 'daily_vol', 'daily_sharpe', 'max_drawdown'], :].T)
 
@@ -791,6 +791,9 @@ class GroupStats(dict):
             return '%s' % kind
         else:
             return '%s %s' % (get_freq_name(freq), kind)
+
+    def render_perf(self, key):
+        return render_perf(self.perf, key)
 
     def set_riskfree_rate(self, rf):
 
@@ -2133,6 +2136,46 @@ def to_ulcer_performance_index(prices, rf=0., nperiods=None):
     er = prices.to_returns().to_excess_returns(rf, nperiods=nperiods)
 
     return er.mean() / prices.to_ulcer_index()
+
+
+def render_perf(perf, key):
+    """
+    Render a performacne dataframe given the target key
+    :param perf:
+    :param key:
+    :return: pd.Style
+    """
+    assert key in perf.index, "The key must be in perf's index"
+
+    idx = pd.IndexSlice
+    col_map = {'1w': '1W', 'mtd': 'MTD', '3m': '3M', '6m': '6M', 'ytd': 'YTD', '1y': '1Y', '2y': '2Y (ann.)',
+               '3y': '3Y (ann.)', 'incep': 'Incep. (ann.)',
+               'total_return': 'Total Return', 'start': 'Incep. Date', 'daily_vol': 'Vol', 'daily_sharpe': 'Sharpe',
+               'max_drawdown': 'Max DD'}
+    display_col = ['1W', 'MTD', '3M', '6M', 'YTD', '1Y', '2Y (ann.)', '3Y (ann.)', 'Incep. (ann.)', 'Total Return',
+                   'Incep. Date', 'Vol', 'Sharpe', 'Max DD']
+    pct_cols = ['1W', 'MTD', '3M', '6M', 'YTD', '1Y', '2Y (ann.)', '3Y (ann.)', 'Incep. (ann.)', 'Total Return', 'Vol',
+                'Max DD']
+    desc_rank = ['1W', 'MTD', '3M', '6M', 'YTD', '1Y', '2Y (ann.)', '3Y (ann.)', 'Sharpe', 'Max DD']
+    asc_rank = ['Vol']
+
+    perf = perf.rename(columns = col_map)[display_col]
+    rank = pd.concat(
+        [perf[desc_rank].rank(ascending=False).loc[key, :], perf[asc_rank].rank(ascending=True).loc[key, :]])
+    perf.index = [x.replace(' Equity', '') for x in perf.index]
+    perf.sort_values('1W', ascending=False, inplace=True)
+
+    perf.loc['Rank', rank.index] = rank
+    perf.fillna('-', inplace=True)
+
+    st = perf.style.format('{:.2%}', subset=idx[perf.index[:-1], pct_cols]). \
+        format('{:.2f}', subset=idx[perf.index[:-1], 'Sharpe']). \
+        format(lambda x: x.strftime('%Y-%m-%d'), subset=idx[perf.index[:-1], 'Incep. Date']). \
+        set_table_attributes('class="table table-striped"'). \
+        set_properties(pd.IndexSlice[key.replace(' Equity', ''), :], **{'font-weight': 'bold'}). \
+        set_properties(pd.IndexSlice['Rank', :], **{'font-weight': 'bold'})
+
+    return st
 
 
 def extend_pandas():
