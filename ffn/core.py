@@ -792,8 +792,13 @@ class GroupStats(dict):
         else:
             return '%s %s' % (get_freq_name(freq), kind)
 
-    def render_perf(self, key):
-        return render_perf(self.perf, key)
+    def render_perf(self, **kwargs):
+        """
+        Render the performance dataframe
+        :param kwargs:
+        :return:
+        """
+        return render_perf(self.perf, **kwargs)
 
     def set_riskfree_rate(self, rf):
 
@@ -2148,7 +2153,7 @@ def clean_ticker(ticker):
     return ticker.replace(' Equity', '').upper()
 
 
-def render_perf(perf, key, clean_index=True):
+def render_perf(perf, key, clean_index=True, tk_names=None):
     """
     Render a performacne dataframe given the target key
     :param perf:
@@ -2201,11 +2206,16 @@ def render_perf(perf, key, clean_index=True):
     else:
         rank.index = [x + ' Rank' for x in rank.index]
         key_rank = rank.index
-        perf = perf.append(rank)
+        perf = perf.append(rank.sort_values('1W'))
 
-    perf = perf[display_col]
+    # Append names
+    if isinstance(tk_names, pd.Series):
+        perf = perf.join(tk_names)
+        perf = perf[[tk_names.name] + display_col]
+    else:
+        perf = perf[display_col]
+
     perf.fillna('-', inplace=True)
-
     st = perf.style.format('{:.2%}', subset=idx[names, pct_cols]). \
         format('{:.2f}', subset=idx[names, 'Sharpe']). \
         format(lambda x: x.strftime('%Y-%m-%d'), subset=idx[names, 'Incep. Date']). \
