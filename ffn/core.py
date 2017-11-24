@@ -2138,14 +2138,38 @@ def to_ulcer_performance_index(prices, rf=0., nperiods=None):
     return er.mean() / prices.to_ulcer_index()
 
 
-def render_perf(perf, key):
+def clean_ticker(ticker):
+    """
+    Clean ticker
+    :param ticker:
+    :return:
+    """
+    assert type(ticker) == str, "Ticker has to be a string"
+    return ticker.replace(' Equity', '').upper()
+
+
+def render_perf(perf, key, clean_index=True):
     """
     Render a performacne dataframe given the target key
     :param perf:
     :param key:
     :return: pd.Style
     """
-    assert key in perf.index, "The key must be in perf's index"
+    perf = perf.copy()
+    assert type(key) in (str, list), "The key must be a list or a string"
+    if isinstance(key, str):
+        assert key in perf.index, "The key must be in perf's index"
+    else:
+        for x in key:
+            assert x in perf.index, "{} is not in the index".format(x)
+
+    if clean_index:
+        perf.index = [clean_ticker(x) for x in perf.index]
+        if isinstance(key, str):
+            key = clean_ticker(key)
+        else:
+            key = [clean_ticker(x) for x in key]
+    names = perf.index
 
     idx = pd.IndexSlice
     col_map = {'1w': '1W', 'mtd': 'MTD', '3m': '3M', '6m': '6M', 'ytd': 'YTD', '1y': '1Y', '2y': '2Y (ann.)',
@@ -2158,22 +2182,36 @@ def render_perf(perf, key):
                 'Max DD']
     desc_rank = ['1W', 'MTD', '3M', '6M', 'YTD', '1Y', '2Y (ann.)', '3Y (ann.)', 'Sharpe', 'Max DD']
     asc_rank = ['Vol']
+    perf = perf.rename(columns=col_map)
 
-    perf = perf.rename(columns = col_map)[display_col]
-    rank = pd.concat(
-        [perf[desc_rank].rank(ascending=False).loc[key, :], perf[asc_rank].rank(ascending=True).loc[key, :]])
-    perf.index = [x.replace(' Equity', '') for x in perf.index]
+    # Compute the rank
+    if isinstance(key, str):
+        rank_append_axis = 0
+    else:
+        rank_append_axis = 1
+    rank = pd.concat([perf[desc_rank].rank(ascending=False).loc[key, :],
+                      perf[asc_rank].rank(ascending=True).loc[key, :]],
+                     axis=rank_append_axis)
     perf.sort_values('1W', ascending=False, inplace=True)
 
-    perf.loc['Rank', rank.index] = rank
+    # Append the rank
+    if type(key) == str:
+        key_rank = key + ' Rank'
+        perf.loc[key_rank, rank.index] = rank
+    else:
+        rank.index = [x + ' Rank' for x in rank.index]
+        key_rank = rank.index
+        perf = perf.append(rank)
+
+    perf = perf[display_col]
     perf.fillna('-', inplace=True)
 
-    st = perf.style.format('{:.2%}', subset=idx[perf.index[:-1], pct_cols]). \
-        format('{:.2f}', subset=idx[perf.index[:-1], 'Sharpe']). \
-        format(lambda x: x.strftime('%Y-%m-%d'), subset=idx[perf.index[:-1], 'Incep. Date']). \
+    st = perf.style.format('{:.2%}', subset=idx[names, pct_cols]). \
+        format('{:.2f}', subset=idx[names, 'Sharpe']). \
+        format(lambda x: x.strftime('%Y-%m-%d'), subset=idx[names, 'Incep. Date']). \
         set_table_attributes('class="table table-striped"'). \
-        set_properties(pd.IndexSlice[key.replace(' Equity', ''), :], **{'font-weight': 'bold'}). \
-        set_properties(pd.IndexSlice['Rank', :], **{'font-weight': 'bold'})
+        set_properties(idx[key, :], **{'font-weight': 'bold'}). \
+        set_properties(idx[key_rank, :], **{'font-weight': 'bold'})
 
     return st
 
