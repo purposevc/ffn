@@ -2,7 +2,7 @@ from __future__ import print_function
 from future.utils import listvalues, iteritems
 import random
 from . import utils
-from .utils import fmtp, fmtn, fmtpn, get_freq_name
+from .utils import fmtp, fmtn, fmtpn, get_freq_name, fmti
 import numpy as np
 import pandas as pd
 from pandas.core.base import PandasObject
@@ -2215,13 +2215,14 @@ def render_perf(perf, key, clean_index=True, tk_names=None):
     else:
         perf = perf[display_col]
 
-    perf.fillna('-', inplace=True)
-    st = perf.style.format('{:.2%}', subset=idx[names, pct_cols]). \
-        format('{:.2f}', subset=idx[names, 'Sharpe']). \
+    #perf.fillna('-', inplace=True)
+    st = perf.style.format(fmtp, subset=idx[names, pct_cols]). \
+        format(fmtn, subset=idx[names, 'Sharpe']). \
         format(lambda x: x.strftime('%Y-%m-%d'), subset=idx[names, 'Incep. Date']). \
         set_table_attributes('class="table table-striped"'). \
         set_properties(idx[key, :], **{'font-weight': 'bold'}). \
-        set_properties(idx[key_rank, :], **{'font-weight': 'bold'})
+        set_properties(idx[key_rank, :], **{'font-weight': 'bold'}). \
+        format(fmti, idx[key_rank,:])
 
     return st
 

@@ -114,6 +114,15 @@ def fmtn(number):
         return '-'
     return format(number, '.2f')
 
+def fmti(number):
+    """
+    Formatting helper - int
+    :param number:
+    :return:
+    """
+    if np.isnan(number):
+        return '-'
+    return format(number,'.0f')
 
 def get_freq_name(period):
     period = period.upper()
