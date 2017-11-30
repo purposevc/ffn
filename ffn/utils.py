@@ -124,6 +124,20 @@ def fmti(number):
         return '-'
     return format(number,'.0f')
 
+def fmtl(x):
+    """
+    Formatting helper - large number
+
+    :param x:
+    :return:
+    """
+    if x >= 1000000:
+        return '{:,.0f} Mln'.format(x/1000000)
+    elif x >= 1000:
+        return '{:,.0f} k'.format(x/1000)
+    else:
+        return '{:,.0f}'.format(x)
+
 def get_freq_name(period):
     period = period.upper()
     periods = {
