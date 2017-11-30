@@ -131,9 +131,9 @@ def fmtl(x):
     :param x:
     :return:
     """
-    if x >= 1000000:
+    if abs(x) >= 1000000:
         return '{:,.0f} Mln'.format(x/1000000)
-    elif x >= 1000:
+    elif abs(x) >= 1000:
         return '{:,.0f} k'.format(x/1000)
     else:
         return '{:,.0f}'.format(x)
