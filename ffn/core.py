@@ -792,13 +792,13 @@ class GroupStats(dict):
         else:
             return '%s %s' % (get_freq_name(freq), kind)
 
-    def render_perf(self, **kwargs):
+    def render_perf(self, key, clean_index=True, tk_names=None, **kwargs):
         """
         Render the performance dataframe
         :param kwargs:
         :return:
         """
-        return render_perf(self.perf, **kwargs)
+        return render_perf(self.perf, key, clean_index, tk_names, **kwargs)
 
     def set_riskfree_rate(self, rf):
 
@@ -2153,7 +2153,7 @@ def clean_ticker(ticker):
     return ticker.replace(' Equity', '').upper()
 
 
-def render_perf(perf, key, clean_index=True, tk_names=None):
+def render_perf(perf, key, clean_index=True, tk_names=None, rank_row=True, sort_by=None):
     """
     Render a performacne dataframe given the target key
     :param perf:
@@ -2212,18 +2212,30 @@ def render_perf(perf, key, clean_index=True, tk_names=None):
     if isinstance(tk_names, pd.Series):
         perf = perf.join(tk_names)
         perf = perf[[tk_names.name] + display_col]
+        perf = perf.sort_values(tk_names.name)
     else:
         perf = perf[display_col]
 
-    #perf.fillna('-', inplace=True)
-    st = perf.style.format(fmtp, subset=idx[names, pct_cols]). \
-        format(fmtn, subset=idx[names, 'Sharpe']). \
-        format(lambda x: x.strftime('%Y-%m-%d'), subset=idx[names, 'Incep. Date']). \
-        set_table_attributes('class="table table-striped"'). \
-        set_properties(idx[key, :], **{'font-weight': 'bold'}). \
-        set_properties(idx[key_rank, :], **{'font-weight': 'bold'}). \
-        format(fmti, idx[key_rank,:])
+    if sort_by:
+        perf = perf.sort_values(sort_by)
 
+    perf.rename_axis({'Sharpe': 'Ret/Vol'}, axis=1, inplace=True)
+
+    if rank_row:
+        # perf.fillna('-', inplace=True)
+        st = perf.style.format(fmtp, subset=idx[names, pct_cols]). \
+            format(fmtn, subset=idx[names, 'Ret/Vol']). \
+            format(lambda x: x.strftime('%Y-%m-%d'), subset=idx[names, 'Incep. Date']). \
+            set_table_attributes('class="table table-striped"'). \
+            set_properties(idx[key, :], **{'font-weight': 'bold'}). \
+            set_properties(idx[key_rank, :], **{'font-weight': 'bold'}). \
+            format(fmti, idx[key_rank, :])
+    else:
+        perf.drop(key_rank, axis=0, inplace=True)
+        st = perf.style.format(fmtp, subset=idx[:, pct_cols]). \
+            format(fmtn, subset=idx[:, 'Ret/Vol']). \
+            format(lambda x: x.strftime('%Y-%m-%d'), subset=idx[:, 'Incep. Date']). \
+            set_table_attributes('class="table table-striped"')
     return st
 
 
