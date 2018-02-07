@@ -139,10 +139,10 @@ class PerformanceStats(object):
                                          'Nov', 'Dec', 'YTD']
 
         self.lookback_returns = pd.Series(
-            [self.one_week, self.mtd, self.three_month, self.six_month, self.ytd,
-             self.one_year, self.two_year, self.three_year, self.five_year,
+            [self.one_day, self.one_week, self.mtd, self.three_month, self.six_month, self.ytd,
+             self.one_year, self.two_year, self.three_year, self.four_year, self.five_year,
              self.ten_year, self.cagr],
-            ['1w', 'mtd', '3m', '6m', 'ytd', '1y', '2y', '3y', '5y', '10y', 'incep'])
+            ['1d', '1w', 'mtd', '3m', '6m', 'ytd', '1y', '2y', '3y', '4y', '5y', '10y', 'incep'])
         self.lookback_returns.name = self.name
 
         st = self._stats()
@@ -175,6 +175,7 @@ class PerformanceStats(object):
         self.monthly_sortino = np.nan
         self.best_month = np.nan
         self.worst_month = np.nan
+        self.one_day = np.nan
         self.one_week = np.nan
         self.mtd = np.nan
         self.three_month = np.nan
@@ -199,6 +200,7 @@ class PerformanceStats(object):
         self.yearly_skew = np.nan
         self.yearly_kurt = np.nan
         self.two_year = np.nan
+        self.four_year = np.nan
         self.five_year = np.nan
         self.ten_year = np.nan
         self.calmar = np.nan
@@ -234,7 +236,7 @@ class PerformanceStats(object):
 
         if len(r) < 2:
             return
-
+        self.one_day = r[-1]
         self.daily_mean = r.mean() * 252
         self.daily_vol = r.std() * np.sqrt(252)
         self.daily_sharpe = r.calc_sharpe(rf=self.rf, nperiods=252)
@@ -355,8 +357,9 @@ class PerformanceStats(object):
         self.worst_year = yr.min()
 
         # annualize stat for over 1 year
-        self.three_year = calc_cagr_look_back(p, years=3)
         self.two_year = calc_cagr_look_back(p, years=2)
+        self.three_year = calc_cagr_look_back(p, years=3)
+        self.four_year = calc_cagr_look_back(p, years=4)
         self.five_year = calc_cagr_look_back(p, years=5)
         self.ten_year = calc_cagr_look_back(p, years=10)
 
@@ -2153,60 +2156,32 @@ def clean_ticker(ticker):
     return ticker.replace(' Equity', '').upper()
 
 
-def render_perf(perf, key, clean_index=True, tk_names=None, rank_row=True, sort_by=None):
+def render_perf(perf, key=None, clean_index=True, tk_names=None, add_color=True, sort_by=None, ascending=True):
     """
     Render a performacne dataframe given the target key
     :param perf:
     :param key:
     :return: pd.Style
     """
-    perf = perf.copy()
-    assert type(key) in (str, list), "The key must be a list or a string"
-    if isinstance(key, str):
-        assert key in perf.index, "The key must be in perf's index"
-    else:
-        for x in key:
-            assert x in perf.index, "{} is not in the index".format(x)
-
-    if clean_index:
-        perf.index = [clean_ticker(x) for x in perf.index]
-        if isinstance(key, str):
-            key = clean_ticker(key)
-        else:
-            key = [clean_ticker(x) for x in key]
-    names = perf.index
-
     idx = pd.IndexSlice
-    col_map = {'1w': '1W', 'mtd': 'MTD', '3m': '3M', '6m': '6M', 'ytd': 'YTD', '1y': '1Y', '2y': '2Y (ann.)',
-               '3y': '3Y (ann.)', 'incep': 'Incep. (ann.)',
-               'total_return': 'Total Return', 'start': 'Incep. Date', 'daily_vol': 'Vol', 'daily_sharpe': 'Sharpe',
-               'max_drawdown': 'Max DD'}
-    display_col = ['1W', 'MTD', '3M', '6M', 'YTD', '1Y', '2Y (ann.)', '3Y (ann.)', 'Incep. (ann.)', 'Total Return',
-                   'Incep. Date', 'Vol', 'Sharpe', 'Max DD']
-    pct_cols = ['1W', 'MTD', '3M', '6M', 'YTD', '1Y', '2Y (ann.)', '3Y (ann.)', 'Incep. (ann.)', 'Total Return', 'Vol',
-                'Max DD']
-    desc_rank = ['1W', 'MTD', '3M', '6M', 'YTD', '1Y', '2Y (ann.)', '3Y (ann.)', 'Sharpe', 'Max DD']
+    col_map = {'1d': '1D', '1w': '1W', 'mtd': 'MTD', '3m': '3M', '6m': '6M', 'ytd': 'YTD', '1y': '1Y',
+               '2y': '2Y (ann.)', '3y': '3Y (ann.)', '4y': '4Y (ann.)', 'incep': 'Incep. (ann.)',
+               'total_return': 'Total Return',
+               'start': 'Incep. Date', 'daily_vol': 'Vol', 'daily_sharpe': 'Sharpe', 'max_drawdown': 'Max DD'}
+    display_col = ['1D', '1W', 'MTD', '3M', '6M', 'YTD', '1Y', '2Y (ann.)', '3Y (ann.)', '4Y (ann.)', 'Incep. (ann.)',
+                   'Total Return', 'Incep. Date', 'Vol', 'Sharpe', 'Max DD']
+    pct_cols = ['1D', '1W', '1W', 'MTD', '3M', '6M', 'YTD', '1Y', '2Y (ann.)', '3Y (ann.)', '4Y (ann.)',
+                'Incep. (ann.)', 'Total Return', 'Vol', 'Max DD']
+    desc_rank = ['1D', '1W', 'MTD', '3M', '6M', 'YTD', '1Y', '2Y (ann.)', '3Y (ann.)', '4Y (ann.)', 'Sharpe', 'Max DD']
+    color_cols = ['1D', '1W', 'MTD', '3M', '6M', 'YTD', '1Y', '2Y (ann.)', '3Y (ann.)', '4Y (ann.)', 'Incep. (ann.)',
+                  'Total Return']
     asc_rank = ['Vol']
+    perf = perf.copy()
+    names = perf.index
     perf = perf.rename(columns=col_map)
 
-    # Compute the rank
-    if isinstance(key, str):
-        rank_append_axis = 0
-    else:
-        rank_append_axis = 1
-    rank = pd.concat([perf[desc_rank].rank(ascending=False).loc[key, :],
-                      perf[asc_rank].rank(ascending=True).loc[key, :]],
-                     axis=rank_append_axis)
-    perf.sort_values('1W', ascending=False, inplace=True)
-
-    # Append the rank
-    if type(key) == str:
-        key_rank = key + ' Rank'
-        perf.loc[key_rank, rank.index] = rank
-    else:
-        rank.index = [x + ' Rank' for x in rank.index]
-        key_rank = rank.index
-        perf = perf.append(rank.sort_values('1W'))
+    assert isinstance(key, (str, list, type(None))), "The key must be a list or a string"
+    assert isinstance(tk_names, (pd.Series, type(None))), "tk_names must be a pd.Series"
 
     # Append names
     if isinstance(tk_names, pd.Series):
@@ -2216,13 +2191,43 @@ def render_perf(perf, key, clean_index=True, tk_names=None, rank_row=True, sort_
     else:
         perf = perf[display_col]
 
+    if clean_index:
+        perf.index = [clean_ticker(x) for x in perf.index]
+        names = [clean_ticker(x) for x in names]
+        if not (type(key) == type(None)):
+            if isinstance(key, str):
+                key = clean_ticker(key)
+            else:
+                key = [clean_ticker(x) for x in key]
+
+    if key:
+        if isinstance(key, str):
+            assert key in perf.index, "The key must be in perf's index"
+            rank_append_axis = 0
+            key_rank = key + ' Rank'
+            rank = pd.concat([perf[desc_rank].rank(ascending=False).loc[key, :],
+                              perf[asc_rank].rank(ascending=True).loc[key, :]],
+                             axis=rank_append_axis)
+            perf.loc[key_rank, rank.index] = rank
+        else:
+            rank_append_axis = 1
+            for x in key:
+                assert x in perf.index, "{} is not in the index".format(x)
+            rank = pd.concat([perf[desc_rank].rank(ascending=False).loc[key, :],
+                              perf[asc_rank].rank(ascending=True).loc[key, :]],
+                             axis=rank_append_axis)
+            rank.index = [x + ' Rank' for x in rank.index]
+            key_rank = rank.index
+            perf = perf.append(rank.sort_values('1W'))
+    perf.sort_values('1W', ascending=False, inplace=True)
+
     if sort_by:
-        perf = perf.sort_values(sort_by)
+        perf = perf.sort_values(sort_by, ascending=ascending)
 
-    perf.rename_axis({'Sharpe': 'Ret/Vol'}, axis=1, inplace=True)
+    perf.rename(columns={'Sharpe': 'Ret/Vol'}, inplace=True)
 
-    if rank_row:
-        # perf.fillna('-', inplace=True)
+    if key:
+        perf = pd.concat([perf.loc[[key], :], perf.drop(key, axis=0)], axis=0)
         st = perf.style.format(fmtp, subset=idx[names, pct_cols]). \
             format(fmtn, subset=idx[names, 'Ret/Vol']). \
             format(lambda x: x.strftime('%Y-%m-%d'), subset=idx[names, 'Incep. Date']). \
@@ -2231,12 +2236,25 @@ def render_perf(perf, key, clean_index=True, tk_names=None, rank_row=True, sort_
             set_properties(idx[key_rank, :], **{'font-weight': 'bold'}). \
             format(fmti, idx[key_rank, :])
     else:
-        perf.drop(key_rank, axis=0, inplace=True)
         st = perf.style.format(fmtp, subset=idx[:, pct_cols]). \
             format(fmtn, subset=idx[:, 'Ret/Vol']). \
             format(lambda x: x.strftime('%Y-%m-%d'), subset=idx[:, 'Incep. Date']). \
             set_table_attributes('class="table table-striped"')
+
+    if add_color:
+        st = st.applymap(color_negative_red_positive_green, subset=idx[names, color_cols])
+
     return st
+
+
+def color_negative_red_positive_green(val):
+    """
+    Takes a scalar and returns a string with
+    the css property `'color: red'` for negative
+    strings, green otherwise.
+    """
+    color = 'red' if val < 0 else 'green'
+    return 'color: %s; text-align: right;' % color
 
 
 def extend_pandas():
