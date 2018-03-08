@@ -795,13 +795,15 @@ class GroupStats(dict):
         else:
             return '%s %s' % (get_freq_name(freq), kind)
 
-    def render_perf(self, key, clean_index=True, tk_names=None, **kwargs):
+    def render_perf(self, key=None, clean_index: bool = True, tk_names: pd.DataFrame = pd.DataFrame(), add_color=True,
+                    sort_by=None,
+                    ascending=True):
         """
         Render the performance dataframe
         :param kwargs:
         :return:
         """
-        return render_perf(self.perf, key, clean_index, tk_names, **kwargs)
+        return render_perf(self.perf, key, clean_index, tk_names, add_color, sort_by, ascending)
 
     def set_riskfree_rate(self, rf):
 
@@ -2156,7 +2158,9 @@ def clean_ticker(ticker):
     return ticker.replace(' Equity', '').upper()
 
 
-def render_perf(perf, key=None, clean_index=True, tk_names=None, add_color=True, sort_by=None, ascending=True):
+def render_perf(perf, key=None, clean_index: bool = True, tk_names: pd.DataFrame = None, add_color=True,
+                sort_by=None,
+                ascending=True):
     """
     Render a performacne dataframe given the target key
     :param perf:
@@ -2181,10 +2185,14 @@ def render_perf(perf, key=None, clean_index=True, tk_names=None, add_color=True,
     perf = perf.rename(columns=col_map)
 
     assert isinstance(key, (str, list, type(None))), "The key must be a list or a string"
-    assert isinstance(tk_names, (pd.Series, type(None))), "tk_names must be a pd.Series"
+    assert isinstance(tk_names, (pd.DataFrame, pd.Series, type(None))), "tk_names must be a DataFrame or a Series"
 
     # Append names
-    if isinstance(tk_names, pd.Series):
+    if isinstance(tk_names, pd.DataFrame):
+        perf = perf.join(tk_names)
+        perf = perf[list(tk_names.columns) + display_col]
+        perf = perf.sort_values(tk_names.columns[0])
+    elif isinstance(tk_names, pd.Series):
         perf = perf.join(tk_names)
         perf = perf[[tk_names.name] + display_col]
         perf = perf.sort_values(tk_names.name)
