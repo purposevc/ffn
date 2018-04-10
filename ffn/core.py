@@ -2160,7 +2160,8 @@ def clean_ticker(ticker):
 
 def render_perf(perf, key=None, clean_index: bool = True, tk_names: pd.DataFrame = None, add_color=True,
                 sort_by=None,
-                ascending=True):
+                ascending=True,
+                key_background_color='#7FBFD1'):
     """
     Render a performacne dataframe given the target key
     :param perf:
@@ -2235,12 +2236,13 @@ def render_perf(perf, key=None, clean_index: bool = True, tk_names: pd.DataFrame
     perf.rename(columns={'Sharpe': 'Ret/Vol'}, inplace=True)
 
     if key:
-        perf = pd.concat([perf.loc[[key], :], perf.drop(key, axis=0)], axis=0)
+        # perf = pd.concat([perf.loc[[key], :], perf.drop(key, axis=0)], axis=0)
+        perf = perf.loc[[key] + list(perf.drop([key, key_rank], axis=0).index) + [key_rank], :]
         st = perf.style.format(fmtp, subset=idx[names, pct_cols]). \
             format(fmtn, subset=idx[names, 'Ret/Vol']). \
             format(lambda x: x.strftime('%Y-%m-%d'), subset=idx[names, 'Incep. Date']). \
             set_table_attributes('class="table table-striped"'). \
-            set_properties(idx[key, :], **{'font-weight': 'bold'}). \
+            set_properties(idx[key, :], **{'font-weight': 'bold', 'background': key_background_color}). \
             set_properties(idx[key_rank, :], **{'font-weight': 'bold'}). \
             format(fmti, idx[key_rank, :])
     else:
