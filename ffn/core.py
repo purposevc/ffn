@@ -2155,7 +2155,7 @@ def clean_ticker(ticker):
     :return:
     """
     assert type(ticker) == str, "Ticker has to be a string"
-    return ticker.replace(' Equity', '').upper()
+    return ticker.replace(' CN Equity', '').replace(' US Equity', '').replace(' Index', '').upper()
 
 
 def render_perf(perf, key=None, clean_index: bool = True, tk_names: pd.DataFrame = None, add_color=True,
@@ -2170,15 +2170,15 @@ def render_perf(perf, key=None, clean_index: bool = True, tk_names: pd.DataFrame
     """
     idx = pd.IndexSlice
     col_map = {'1d': '1D', '1w': '1W', 'mtd': 'MTD', '3m': '3M', '6m': '6M', 'ytd': 'YTD', '1y': '1Y',
-               '2y': '2Y (ann.)', '3y': '3Y (ann.)', '4y': '4Y (ann.)', 'incep': 'Incep. (ann.)',
+               '2y': '2Y', '3y': '3Y', '4y': '4Y', 'incep': 'Incep.',
                'total_return': 'Total Return',
                'start': 'Incep. Date', 'daily_vol': 'Vol', 'daily_sharpe': 'Sharpe', 'max_drawdown': 'Max DD'}
-    display_col = ['1D', '1W', 'MTD', '3M', '6M', 'YTD', '1Y', '2Y (ann.)', '3Y (ann.)', '4Y (ann.)', 'Incep. (ann.)',
+    display_col = ['1D', '1W', 'MTD', '3M', '6M', 'YTD', '1Y', '2Y', '3Y', '4Y', 'Incep.',
                    'Total Return', 'Incep. Date', 'Vol', 'Sharpe', 'Max DD']
-    pct_cols = ['1D', '1W', '1W', 'MTD', '3M', '6M', 'YTD', '1Y', '2Y (ann.)', '3Y (ann.)', '4Y (ann.)',
-                'Incep. (ann.)', 'Total Return', 'Vol', 'Max DD']
-    desc_rank = ['1D', '1W', 'MTD', '3M', '6M', 'YTD', '1Y', '2Y (ann.)', '3Y (ann.)', '4Y (ann.)', 'Sharpe', 'Max DD']
-    color_cols = ['1D', '1W', 'MTD', '3M', '6M', 'YTD', '1Y', '2Y (ann.)', '3Y (ann.)', '4Y (ann.)', 'Incep. (ann.)',
+    pct_cols = ['1D', '1W', '1W', 'MTD', '3M', '6M', 'YTD', '1Y', '2Y', '3Y', '4Y',
+                'Incep.', 'Total Return', 'Vol', 'Max DD']
+    desc_rank = ['1D', '1W', 'MTD', '3M', '6M', 'YTD', '1Y', '2Y', '3Y', '4Y', 'Sharpe', 'Max DD']
+    color_cols = ['1D', '1W', 'MTD', '3M', '6M', 'YTD', '1Y', '2Y', '3Y', '4Y', 'Incep.',
                   'Total Return']
     asc_rank = ['Vol']
     perf = perf.copy()
@@ -2243,7 +2243,7 @@ def render_perf(perf, key=None, clean_index: bool = True, tk_names: pd.DataFrame
             format(lambda x: x.strftime('%Y-%m-%d'), subset=idx[names, 'Incep. Date']). \
             set_table_attributes('class="table table-striped"'). \
             set_properties(idx[key, :], **{'font-weight': 'bold', 'background': key_background_color}). \
-            set_properties(idx[key_rank, :], **{'font-weight': 'bold'}). \
+            set_properties(idx[key_rank, :], **{'font-weight': 'bold', 'text-align': 'right'}). \
             format(fmti, idx[key_rank, :])
     else:
         st = perf.style.format(fmtp, subset=idx[:, pct_cols]). \
