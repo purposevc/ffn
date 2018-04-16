@@ -2161,7 +2161,8 @@ def clean_ticker(ticker):
 def render_perf(perf, key=None, clean_index: bool = True, tk_names: pd.DataFrame = None, add_color=True,
                 sort_by=None,
                 ascending=True,
-                key_background_color='#7FBFD1'):
+                key_background_color='#7FBFD1',
+                index_order=[]):
     """
     Render a performacne dataframe given the target key
     :param perf:
@@ -2200,9 +2201,13 @@ def render_perf(perf, key=None, clean_index: bool = True, tk_names: pd.DataFrame
     else:
         perf = perf[display_col]
 
+    if not index_order:
+        index_order = names
+
     if clean_index:
         perf.index = [clean_ticker(x) for x in perf.index]
         names = [clean_ticker(x) for x in names]
+        index_order = [clean_ticker(x) for x in index_order]
         if not (type(key) == type(None)):
             if isinstance(key, str):
                 key = clean_ticker(key)
@@ -2236,7 +2241,7 @@ def render_perf(perf, key=None, clean_index: bool = True, tk_names: pd.DataFrame
 
     if key:
         # perf = pd.concat([perf.loc[[key], :], perf.drop(key, axis=0)], axis=0)
-        perf = perf.loc[[key] + list(perf.drop([key, key_rank], axis=0).index) + [key_rank], :]
+        perf = perf.loc[[key] + index_order + [key_rank], :]
         st = perf.style.format(fmtp, subset=idx[names, pct_cols]). \
             format(fmtn, subset=idx[names, 'Ret/Vol']). \
             format(lambda x: x.strftime('%Y-%m-%d'), subset=idx[names, 'Incep. Date']). \
