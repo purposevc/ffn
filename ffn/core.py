@@ -2181,6 +2181,7 @@ def render_perf(perf, key=None, clean_index: bool = True, tk_names: pd.DataFrame
     desc_rank = ['1D', '1W', 'MTD', '3M', '6M', 'YTD', '1Y', '2Y', '3Y', '4Y', 'Sharpe', 'Max DD']
     color_cols = ['1D', '1W', 'MTD', '3M', '6M', 'YTD', '1Y', '2Y', '3Y', '4Y', 'Incep.',
                   'Total Return']
+    align_right_cols = pct_cols + ['Ret/Voll']
     asc_rank = ['Vol']
     perf = perf.copy()
     names = perf.index
@@ -2244,15 +2245,17 @@ def render_perf(perf, key=None, clean_index: bool = True, tk_names: pd.DataFrame
         perf = perf.loc[[key] + index_order + [key_rank], :]
         st = perf.style.format(fmtp, subset=idx[names, pct_cols]). \
             format(fmtn, subset=idx[names, 'Ret/Vol']). \
-            format(lambda x: x.strftime('%Y-%m-%d'), subset=idx[names, 'Incep. Date']). \
+            format(lambda x: x.strftime('%b %d. %Y'), subset=idx[names, 'Incep. Date']). \
             set_table_attributes('class="table table-striped"'). \
             set_properties(idx[key, :], **{'font-weight': 'bold', 'background': key_background_color}). \
             set_properties(idx[key_rank, :], **{'font-weight': 'bold', 'text-align': 'right'}). \
+            set_properties(idx[names, align_right_cols], **{'text-align': 'right'}). \
             format(fmti, idx[key_rank, :])
     else:
         st = perf.style.format(fmtp, subset=idx[:, pct_cols]). \
             format(fmtn, subset=idx[:, 'Ret/Vol']). \
-            format(lambda x: x.strftime('%Y-%m-%d'), subset=idx[:, 'Incep. Date']). \
+            format(lambda x: x.strftime('%b %d. %Y'), subset=idx[:, 'Incep. Date']). \
+            set_properties(idx[names, align_right_cols], **{'text-align': 'right'}). \
             set_table_attributes('class="table table-striped"')
 
     if add_color:
