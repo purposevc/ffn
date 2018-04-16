@@ -2228,7 +2228,6 @@ def render_perf(perf, key=None, clean_index: bool = True, tk_names: pd.DataFrame
             rank.index = [x + ' Rank' for x in rank.index]
             key_rank = rank.index
             perf = perf.append(rank.sort_values('1W'))
-    perf.sort_values('1W', ascending=False, inplace=True)
 
     if sort_by:
         perf = perf.sort_values(sort_by, ascending=ascending)
