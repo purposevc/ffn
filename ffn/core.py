@@ -2181,7 +2181,7 @@ def render_perf(perf, key=None, clean_index: bool = True, tk_names: pd.DataFrame
     desc_rank = ['1D', '1W', 'MTD', '3M', '6M', 'YTD', '1Y', '2Y', '3Y', '4Y', 'Sharpe', 'Max DD']
     color_cols = ['1D', '1W', 'MTD', '3M', '6M', 'YTD', '1Y', '2Y', '3Y', '4Y', 'Incep.',
                   'Total Return']
-    align_right_cols = pct_cols + ['Ret/Voll']
+    align_right_cols = pct_cols + ['Ret/Vol']
     asc_rank = ['Vol']
     perf = perf.copy()
     names = perf.index
