@@ -795,7 +795,7 @@ class GroupStats(dict):
         else:
             return '%s %s' % (get_freq_name(freq), kind)
 
-    def render_perf(self, key=None, clean_index: bool = True, tk_names: pd.DataFrame = pd.DataFrame(), add_color=True,
+    def render_perf(self, key=None, clean_index: bool = True, tk_names: pd.DataFrame = None, add_color=True,
                     sort_by=None,
                     ascending=True):
         """
@@ -2158,7 +2158,7 @@ def clean_ticker(ticker):
     return ticker.replace(' CN Equity', '').replace(' US Equity', '').replace(' Index', '').upper()
 
 
-def render_perf(perf, key=None, clean_index: bool = True, tk_names: pd.DataFrame = None, add_color=True,
+def render_perf(perf, key=None, clean_index: bool = True, tk_names=None, add_color=True,
                 sort_by=None,
                 ascending=True,
                 key_background_color='#7FBFD1',
@@ -2191,11 +2191,11 @@ def render_perf(perf, key=None, clean_index: bool = True, tk_names: pd.DataFrame
     assert isinstance(tk_names, (pd.DataFrame, pd.Series, type(None))), "tk_names must be a DataFrame or a Series"
 
     # Append names
-    if isinstance(tk_names, pd.DataFrame):
+    if isinstance(tk_names, pd.DataFrame) and (len(tk_names) > 0):
         perf = perf.join(tk_names)
         perf = perf[list(tk_names.columns) + display_col]
         perf = perf.sort_values(tk_names.columns[0])
-    elif isinstance(tk_names, pd.Series):
+    elif isinstance(tk_names, pd.Series) and (len(tk_names) > 0):
         perf = perf.join(tk_names)
         perf = perf[[tk_names.name] + display_col]
         perf = perf.sort_values(tk_names.name)
@@ -2224,7 +2224,8 @@ def render_perf(perf, key=None, clean_index: bool = True, tk_names: pd.DataFrame
                               perf[asc_rank].rank(ascending=True).loc[key, :]],
                              axis=rank_append_axis)
             perf.loc[key_rank, rank.index] = rank
-        else:
+            index_order = [x for x in index_order if x != key]
+        elif isinstance(key, list):
             rank_append_axis = 1
             for x in key:
                 assert x in perf.index, "{} is not in the index".format(x)
@@ -2234,6 +2235,9 @@ def render_perf(perf, key=None, clean_index: bool = True, tk_names: pd.DataFrame
             rank.index = [x + ' Rank' for x in rank.index]
             key_rank = rank.index
             perf = perf.append(rank.sort_values('1W'))
+            index_order = [x for x in index_order if x in key]
+        else:
+            raise ValueError("key must be a list or a string")
 
     if sort_by:
         perf = perf.sort_values(sort_by, ascending=ascending)
