@@ -32,6 +32,7 @@ IDX_VERBOSE_MAP = {'start': 'Start',
                    'two_year': '2Y (ann.) ',
                    'three_year': '3Y (ann.)',
                    'five_year': '5Y (ann.)',
+                   'seven_year': '7Y (ann.)',
                    'ten_year': '10Y (ann.)',
                    'incep': 'Since Incep. (ann.)',
                    'daily_mean': 'Daily Mean (ann.)',
@@ -140,9 +141,9 @@ class PerformanceStats(object):
 
         self.lookback_returns = pd.Series(
             [self.one_day, self.one_week, self.mtd, self.three_month, self.six_month, self.ytd,
-             self.one_year, self.two_year, self.three_year, self.four_year, self.five_year,
+             self.one_year, self.two_year, self.three_year, self.four_year, self.five_year, self.seven_year,
              self.ten_year, self.cagr],
-            ['1d', '1w', 'mtd', '3m', '6m', 'ytd', '1y', '2y', '3y', '4y', '5y', '10y', 'incep'])
+            ['1d', '1w', 'mtd', '3m', '6m', 'ytd', '1y', '2y', '3y', '4y', '5y', '7y', '10y', 'incep'])
         self.lookback_returns.name = self.name
 
         st = self._stats()
@@ -202,6 +203,7 @@ class PerformanceStats(object):
         self.two_year = np.nan
         self.four_year = np.nan
         self.five_year = np.nan
+        self.seven_year = np.nan
         self.ten_year = np.nan
         self.calmar = np.nan
 
@@ -361,6 +363,7 @@ class PerformanceStats(object):
         self.three_year = calc_cagr_look_back(p, years=3)
         self.four_year = calc_cagr_look_back(p, years=4)
         self.five_year = calc_cagr_look_back(p, years=5)
+        self.seven_year = calc_cagr_look_back(p, years=7)
         self.ten_year = calc_cagr_look_back(p, years=10)
 
         # -1 here to account for first return that will be nan
@@ -408,6 +411,7 @@ class PerformanceStats(object):
                  ('two_year', '2Y (ann.) ', 'p'),
                  ('three_year', '3Y (ann.)', 'p'),
                  ('five_year', '5Y (ann.)', 'p'),
+                 ('seven_year', '7Y (ann.)', 'p'),
                  ('ten_year', '10Y (ann.)', 'p'),
                  ('incep', 'Since Incep. (ann.)', 'p'),
                  (None, None, None),
@@ -486,11 +490,11 @@ class PerformanceStats(object):
         print('\nAnnualized Returns:')
         data = [[fmtp(self.one_week), fmtp(self.mtd), fmtp(self.three_month), fmtp(self.six_month),
                  fmtp(self.ytd), fmtp(self.one_year), fmtp(self.two_year), fmtp(self.three_year),
-                 fmtp(self.five_year), fmtp(self.ten_year),
+                 fmtp(self.five_year), fmtp(self.seven_year), fmtp(self.ten_year),
                  fmtp(self.incep)]]
         print(tabulate(data,
                        headers=['1w', 'mtd', '3m', '6m', 'ytd', '1y', '2y',
-                                '3y', '5y', '10y', 'incep.']))
+                                '3y', '5y', '7y', '10y', 'incep.']))
 
         print('\nPeriodic:')
         data = [
@@ -750,6 +754,7 @@ class GroupStats(dict):
                  ('one_year', '1Y', 'p'),
                  ('three_year', '3Y (ann.)', 'p'),
                  ('five_year', '5Y (ann.)', 'p'),
+                 ('seven_year', '7Y (ann.)', 'p'),
                  ('ten_year', '10Y (ann.)', 'p'),
                  ('incep', 'Since Incep. (ann.)', 'p'),
                  (None, None, None),
